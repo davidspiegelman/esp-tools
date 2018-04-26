@@ -14,39 +14,53 @@
 on run args
 	if " admin " is in (do shell script "groups") then
 		
-		if (count of items of args) > 0 and item 1 of args is in {"mount", "unmount"} then
-			set diskcmd to item 1 of args
+		set sysinfo to system info
+		set osver to system version of sysinfo
+		
+		considering numeric strings
+			set meets_minimum to osver is greater than or equal to "10.10"
+		end considering
+		
+		if meets_minimum then
+			if (count of items of args) > 0 and item 1 of args is in {"mount", "unmount"} then
+				set diskcmd to item 1 of args
+			else
+				set diskcmd to "toggle"
+			end if
+			
+			set bootdisk to do shell script "diskutil info / | grep 'Device Identifier:' | awk '{print $NF}'"
+			
+			# check if boot disk is a APFS volume
+			set is_APFS to (do shell script "(diskutil list | grep " & bootdisk & " | grep APFS > /dev/null) ; echo $?") is "0"
+			if is_APFS then set bootdisk to do shell script "diskutil list | grep " & quoted form of ("Container " & get_disknum(bootdisk)) & " | awk '{print $NF}'"
+			
+			# check if the boot disk's EFI partion is already mounted
+			set efiDev to "/dev/" & get_disknum(bootdisk) & "s1"
+			set mounted to do shell script "diskutil info " & efiDev & " | grep Mounted: | awk '{print $NF}'"
+			
+			try
+				if mounted is "Yes" and diskcmd is not "mount" then
+					set scriptResult to do shell script "diskutil unmount " & efiDev
+					
+				else if mounted is "No" and diskcmd is not "unmount" then
+					set scriptResult to do shell script "diskutil mount " & efiDev
+					try
+						tell application "Finder" to make new Finder window to (get "/Volumes/EFI/EFI/Clover") as POSIX file
+					end try
+					
+				else
+					set scriptResult to "Volume EFI on " & efiDev & " is already " & diskcmd & "ed"
+					
+				end if
+			on error errorMsg
+				set scriptResult to errorMsg
+			end try
 		else
-			set diskcmd to "toggle"
+			set scriptResult to "This script requires macos v10.10.x or higher."
+			display dialog scriptResult buttons {"OK"}
+			
 		end if
 		
-		set bootdisk to do shell script "diskutil info / | grep 'Device Identifier:' | awk '{print $NF}'"
-		
-		# check if boot disk is a APFS volume
-		set is_APFS to (do shell script "(diskutil list | grep " & bootdisk & " | grep APFS > /dev/null) ; echo $?") is "0"
-		if is_APFS then set bootdisk to do shell script "diskutil list | grep " & quoted form of ("Container " & get_disknum(bootdisk)) & " | awk '{print $NF}'"
-		
-		# check if the boot disk's EFI partion is already mounted
-		set efiDev to "/dev/" & get_disknum(bootdisk) & "s1"
-		set mounted to do shell script "diskutil info " & efiDev & " | grep Mounted: | awk '{print $NF}'"
-		
-		try
-			if mounted is "Yes" and diskcmd is not "mount" then
-				set scriptResult to do shell script "diskutil unmount " & efiDev
-				
-			else if mounted is "No" and diskcmd is not "unmount" then
-				set scriptResult to do shell script "diskutil mount " & efiDev
-				try
-					tell application "Finder" to make new Finder window to (get "/Volumes/EFI/EFI/Clover") as POSIX file
-				end try
-				
-			else
-				set scriptResult to "Volume EFI on " & efiDev & " is already " & diskcmd & "ed"
-				
-			end if
-		on error errorMsg
-			set scriptResult to errorMsg
-		end try
 	else
 		set scriptResult to "Admin privileges required."
 		display dialog scriptResult buttons {"OK"}
