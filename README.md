@@ -10,7 +10,7 @@ Two AppleScripts to assist with general ESP maintenance.
 ### Setup/config:
 
 1. Move the esp-tools folder and its contents to `~/Library/Scripts/`
-2. Enable the [Systemwide Script Menu][] if it is not already anabled
+2. Enable the [Systemwide Script Menu][] if it is not already enabled
 
 ### Usage:
 
