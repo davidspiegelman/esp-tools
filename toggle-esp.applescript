@@ -5,7 +5,7 @@
 -- This script will mount/unmount your EFI partition on your boot disk only
 -- The will work with the new APFS format introduced in High Sierra as
 -- well as HFS Plus formatted disks
--- It requires no interaction from the user whatsoever (password, disk selection, etc.)
+-- Admin password is required starting with MacOS 10.13.6
 -- You must already be an Admin to run this script
 -- Tested with High Sierra (10.13.x) should work with 10.10.x and higher
 -- Use at your own risk
@@ -19,6 +19,7 @@ on run args
 		
 		considering numeric strings
 			set meets_minimum to osver is greater than or equal to "10.10"
+			set require_password to osver is greater than or equal to "10.13.6"
 		end considering
 		
 		if meets_minimum then
@@ -43,7 +44,11 @@ on run args
 					set scriptResult to do shell script "diskutil unmount " & efiDev
 					
 				else if mounted is "No" and diskcmd is not "unmount" then
-					set scriptResult to do shell script "diskutil mount " & efiDev
+					if require_password then
+						set scriptResult to do shell script ("diskutil mount " & efiDev) with administrator privileges
+					else
+						set scriptResult to do shell script "diskutil mount " & efiDev
+					end if
 					try
 						tell application "Finder" to make new Finder window to (get "/Volumes/EFI/EFI/Clover") as POSIX file
 					end try
