@@ -52,6 +52,9 @@ on run args
 					try
 						tell application "Finder" to make new Finder window to (get "/Volumes/EFI/EFI/Clover") as POSIX file
 					end try
+					try
+						tell application "Finder" to make new Finder window to (get "/Volumes/EFI/EFI/OC") as POSIX file
+					end try
 					
 				else
 					set scriptResult to "Volume EFI on " & efiDev & " is already " & diskcmd & "ed"
